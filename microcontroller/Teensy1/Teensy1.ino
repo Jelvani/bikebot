@@ -94,9 +94,9 @@ int delaytime;
 void loop()
 {
   startMillis=millis();
-  frontFeedback.data = front.read();
-  rearFeedback.data = rear.read();
-  balancerFeedback.data = balancer.read();
+  frontFeedback.data = map(front.read(),-20000,20000,-90,90); //map from encoder ticks to degrees
+  rearFeedback.data = map(rear.read(),-20000,20000,-90,90);
+  balancerFeedback.data = map(balancer.read(),-20000,20000,-90,90);
   fr_feedback.publish(&frontFeedback);
   rr_feedback.publish(&rearFeedback);
   bal_feedback.publish(&balancerFeedback);
@@ -110,15 +110,16 @@ void loop()
 }
 
 void frCb(const std_msgs::Float32& msg){
-  frSp=msg.data;
+  
+  frSp=map(msg.data,-90,90,-20000,20000); //map from degrees to encoder ticks
 }
 
 void rrCb(const std_msgs::Float32& msg){
-  rrSp=msg.data;
+  rrSp=map(msg.data,-90,90,-20000,20000);
 }
 
 void balCb(const std_msgs::Float32& msg){
-  balSp=msg.data;
+  balSp=map(msg.data,-90,90,-20000,20000);
 }
 
 void fr_pid(){//ISR for front steering stepper
@@ -201,12 +202,12 @@ void getimu(){
     imu_dat.orientation.x = orientationData.orientation.x;
     imu_dat.orientation.y = orientationData.orientation.y;
     imu_dat.orientation.z = orientationData.orientation.z;
-    imu_dat.angular_velocity.x = angVelocityData.gyro.x
-    imu_dat.angular_velocity.y = angVelocityData.gyro.y
-    imu_dat.angular_velocity.z = angVelocityData.gyro.z
-    imu_dat.linear_acceleration.x = linearAccelData.acceleration.x
-    imu_dat.linear_acceleration.y = linearAccelData.acceleration.y
-    imu_dat.linear_acceleration.z = linearAccelData.acceleration.z
+    imu_dat.angular_velocity.x = angVelocityData.gyro.x;
+    imu_dat.angular_velocity.y = angVelocityData.gyro.y;
+    imu_dat.angular_velocity.z = angVelocityData.gyro.z;
+    imu_dat.linear_acceleration.x = linearAccelData.acceleration.x;
+    imu_dat.linear_acceleration.y = linearAccelData.acceleration.y;
+    imu_dat.linear_acceleration.z = linearAccelData.acceleration.z;
     imu_dat.header.stamp = nh.now();
     threads.delay(10); //100 hz loop
   }
