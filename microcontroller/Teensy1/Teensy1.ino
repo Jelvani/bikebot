@@ -30,7 +30,7 @@ ros::NodeHandle nh;
 std_msgs::Float32 frontFeedback;
 std_msgs::Float32 rearFeedback;
 std_msgs::Float32 balancerFeedback;
-volatile sensor_msgs::Imu imu_dat;
+sensor_msgs::Imu imu_dat;
 ros::Publisher fr_feedback("bike/out/steering/front", &frontFeedback);
 ros::Publisher rr_feedback("bike/out/steering/rear", &rearFeedback);
 ros::Publisher bal_feedback("bike/out/balancer", &balancerFeedback);
@@ -100,7 +100,20 @@ void loop()
   fr_feedback.publish(&frontFeedback);
   rr_feedback.publish(&rearFeedback);
   bal_feedback.publish(&balancerFeedback);
+  
+  /*IMU DATA PUBLISH*/
+  imu_dat.orientation.x = orientationData.orientation.x;
+  imu_dat.orientation.y = orientationData.orientation.y;
+  imu_dat.orientation.z = orientationData.orientation.z;
+  imu_dat.angular_velocity.x = angVelocityData.gyro.x;
+  imu_dat.angular_velocity.y = angVelocityData.gyro.y;
+  imu_dat.angular_velocity.z = angVelocityData.gyro.z;
+  imu_dat.linear_acceleration.x = linearAccelData.acceleration.x;
+  imu_dat.linear_acceleration.y = linearAccelData.acceleration.y;
+  imu_dat.linear_acceleration.z = linearAccelData.acceleration.z;
+  imu_dat.header.stamp = nh.now();
   imupub.publish(&imu_dat);//slows down serial, comment for debugging
+  /************/
   nh.spinOnce();
   currentMillis=millis();
   currentMillis=currentMillis-startMillis;
@@ -199,16 +212,6 @@ void getimu(){
     bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
     bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
     bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
-    imu_dat.orientation.x = orientationData.orientation.x;
-    imu_dat.orientation.y = orientationData.orientation.y;
-    imu_dat.orientation.z = orientationData.orientation.z;
-    imu_dat.angular_velocity.x = angVelocityData.gyro.x;
-    imu_dat.angular_velocity.y = angVelocityData.gyro.y;
-    imu_dat.angular_velocity.z = angVelocityData.gyro.z;
-    imu_dat.linear_acceleration.x = linearAccelData.acceleration.x;
-    imu_dat.linear_acceleration.y = linearAccelData.acceleration.y;
-    imu_dat.linear_acceleration.z = linearAccelData.acceleration.z;
-    imu_dat.header.stamp = nh.now();
     threads.delay(10); //100 hz loop
   }
 }
