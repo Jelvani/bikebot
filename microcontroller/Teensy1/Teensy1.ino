@@ -20,6 +20,7 @@
  void bal_pid();
  void getimu();
  void calibrateSteering();
+ float mapf(float x, float in_min, float in_max, float out_min, float out_max);
  /***********************************/
  
  /************VARIABLES********************/
@@ -94,9 +95,9 @@ int delaytime;
 void loop()
 {
   startMillis=millis();
-  frontFeedback.data = map(front.read(),-20000,20000,-90,90); //map from encoder ticks to degrees
-  rearFeedback.data = map(rear.read(),-20000,20000,-90,90);
-  balancerFeedback.data = map(balancer.read(),-20000,20000,-90,90);
+  frontFeedback.data = mapf(front.read(),-20000,20000,-90,90); //map from encoder ticks to degrees
+  rearFeedback.data = mapf(rear.read(),-20000,20000,-90,90);
+  balancerFeedback.data = mapf(balancer.read(),-20000,20000,-90,90);
   fr_feedback.publish(&frontFeedback);
   rr_feedback.publish(&rearFeedback);
   bal_feedback.publish(&balancerFeedback);
@@ -124,15 +125,15 @@ void loop()
 
 void frCb(const std_msgs::Float32& msg){
   
-  frSp=map(msg.data,-90,90,-20000,20000); //map from degrees to encoder ticks
+  frSp=mapf(msg.data,-90,90,-20000,20000); //map from degrees to encoder ticks
 }
 
 void rrCb(const std_msgs::Float32& msg){
-  rrSp=map(msg.data,-90,90,-20000,20000);
+  rrSp=mapf(msg.data,-90,90,-20000,20000);
 }
 
 void balCb(const std_msgs::Float32& msg){
-  balSp=map(msg.data,-90,90,-20000,20000);
+  balSp=mapf(msg.data,-90,90,-20000,20000);
 }
 
 void fr_pid(){//ISR for front steering stepper
@@ -220,4 +221,9 @@ void calibrateSteering() {
   front.readAndReset();
   rear.readAndReset();
   balancer.readAndReset();
+}
+
+float mapf(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
