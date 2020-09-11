@@ -1,14 +1,19 @@
+/*****
+ * IMU 800 baud rate is 115200, ascii format: $l Roll Pitch Yaw *
+ * 
+ * 
+ */
+
 #include <ros.h>
 #include <std_msgs/Float32.h>
 #include <sensor_msgs/Imu.h>
 #include <Encoder.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
 #include "TeensyThreads.h"
 #define PI 3.1415926535897932384626433832795
 #define USE_TEENSY_HW_SERIAL
+#define HWSERIAL Serial4 //hardware serial port for IMU800
+
 //ThreadWrap(Serial, SerialX);
 //#define Serial ThreadClone(SerialX)
 /**********Function Prototypes**************/
@@ -47,8 +52,7 @@ volatile short int frErr = 0;
 volatile short int rrErr = 0;
 volatile short int balErr = 0;
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55,0x28);
-volatile sensors_event_t orientationData , angVelocityData , linearAccelData;
+volatile float roll,pitch,yaw;
 /************************************************/
 void setup()
 {
@@ -58,13 +62,8 @@ void setup()
   pinMode(3, OUTPUT);//rear steering direction
   pinMode(4, OUTPUT);//balancer pwm
   pinMode(5, OUTPUT);//balancer direction
-  //pinMode(15, INPUT);//calibration reset button
-  //attachInterrupt(digitalPinToInterrupt(15), calibrateSteering, CHANGE);
-  if(!bno.begin())
-  {
-   //if not detected, infinite loop
-    while(1);
-  }
+  
+  HWSERIAL.begin(115200);
   delay(1000);//wait for imu
   //nh.getHardware()->setBaud(256000);
   nh.initNode();
@@ -77,7 +76,6 @@ void setup()
   nh.subscribe(bal_command);
 
   /*****IMU Stuff***********/
-  bno.setExtCrystalUse(true);
   imu_dat.header.frame_id = "imu";
   /*************************/
   
@@ -103,15 +101,9 @@ void loop()
   bal_feedback.publish(&balancerFeedback);
   
   /*IMU DATA PUBLISH*/
-  imu_dat.orientation.x = orientationData.orientation.x;
-  imu_dat.orientation.y = orientationData.orientation.y;
-  imu_dat.orientation.z = orientationData.orientation.z;
-  imu_dat.angular_velocity.x = angVelocityData.gyro.x;
-  imu_dat.angular_velocity.y = angVelocityData.gyro.y;
-  imu_dat.angular_velocity.z = angVelocityData.gyro.z;
-  imu_dat.linear_acceleration.x = linearAccelData.acceleration.x;
-  imu_dat.linear_acceleration.y = linearAccelData.acceleration.y;
-  imu_dat.linear_acceleration.z = linearAccelData.acceleration.z;
+  imu_dat.orientation.x = roll;
+  imu_dat.orientation.y = pitch;
+  imu_dat.orientation.z = yaw;
   imu_dat.header.stamp = nh.now();
   imupub.publish(&imu_dat);//slows down serial, comment for debugging
   /************/
@@ -208,11 +200,15 @@ void bal_pid(){//ISR for front steering stepper
   }
 }
 
+
+
 void getimu(){
+  String data;
   while(1){
-    bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
-    bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
-    bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+    if(HWSERIAL.available()){
+      data = HWSERIAL.readStringUntil('\n');
+      sscanf(data.c_str(),"$l %f %f %f *",&roll,&pitch,&yaw);
+    }
     threads.delay(10); //100 hz loop
   }
 }
