@@ -14,8 +14,6 @@
 #define USE_TEENSY_HW_SERIAL
 #define HWSERIAL Serial4 //hardware serial port for IMU800
 
-//ThreadWrap(Serial, SerialX);
-//#define Serial ThreadClone(SerialX)
 /**********Function Prototypes**************/
  void frCb(const std_msgs::Float32& msg);
  void rrCb(const std_msgs::Float32& msg);
@@ -53,6 +51,7 @@ volatile short int rrErr = 0;
 volatile short int balErr = 0;
 
 volatile float roll,pitch,yaw;
+volatile String data;
 /************************************************/
 void setup()
 {
@@ -101,6 +100,10 @@ void loop()
   bal_feedback.publish(&balancerFeedback);
   
   /*IMU DATA PUBLISH*/
+  if(HWSERIAL.available()){
+      data = HWSERIAL.readStringUntil('\n');
+      sscanf(data.c_str(),"$l %f %f %f *",&roll,&pitch,&yaw);
+    }
   imu_dat.orientation.x = roll;
   imu_dat.orientation.y = pitch;
   imu_dat.orientation.z = yaw;
@@ -203,13 +206,10 @@ void bal_pid(){//ISR for front steering stepper
 
 
 void getimu(){
-  String data;
+  Threads::Mutex mylock;
   while(1){
-    if(HWSERIAL.available()){
-      data = HWSERIAL.readStringUntil('\n');
-      sscanf(data.c_str(),"$l %f %f %f *",&roll,&pitch,&yaw);
-    }
-    threads.delay(10); //100 hz loop
+    
+    threads.delay(15); //100 hz loop
   }
 }
 
